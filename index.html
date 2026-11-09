@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Meta Ray-Ban iOS Streamer</title>
+    <!-- Voeg Apple meta-tags toe voor een "app-achtig" gevoel -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background-color: #000; 
+            color: white; 
+            display: flex; 
+            flex-direction: column; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh; 
+            margin: 0; 
+            text-align: center;
+        }
+        .container { 
+            padding: 20px; 
+            width: 90%; 
+            max-width: 400px; 
+        }
+        h1 { font-size: 28px; margin-bottom: 10px; }
+        p { color: #ccc; line-height: 1.5; }
+        
+        /* Apple-style button */
+        .btn { 
+            background-color: #007AFF; /* iOS Blue */
+            color: white; 
+            border: none; 
+            padding: 15px 30px; 
+            font-size: 18px; 
+            border-radius: 12px; 
+            cursor: pointer; 
+            margin-top: 30px; 
+            width: 100%;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .btn:active { background-color: #0056b3; }
+        
+        #status { 
+            margin-top: 20px; 
+            font-size: 16px; 
+            color: #34C759; /* iOS Green */
+            min-height: 24px;
+        }
+        .note { 
+            font-size: 13px; 
+            color: #8e8e93; 
+            margin-top: 20px; 
+            background: #1c1c1e;
+            padding: 10px;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Ray-Ban Meta Audio</h1>
+    <p>Stream audio van je bril naar een Bluetooth-luidspreker op iPhone.</p>
+    
+    <button id="connectBtn" class="btn" onclick="startBluetooth()">🔵 Verbind Speaker</button>
+    
+    <div id="status">Wacht op actie...</div>
+    
+    <div class="note">
+        <strong>Voor iOS:</strong><br>
+        1. Zorg dat Bluetooth aan staat.<br>
+        2. Klik op de knop om de iPhone Bluetooth-menu te openen.<br>
+        3. Kies een speaker uit de lijst.
+    </div>
+</div>
+
+<script>
+    // Controleer of Web Bluetooth beschikbaar is (werkt in Chrome, Edge, en recent Safari)
+    if (!navigator.bluetooth) {
+        document.getElementById('status').innerText = "⚠️ Web Bluetooth niet ondersteund op deze browser.";
+        document.getElementById('connectBtn').disabled = true;
+    }
+
+    async function startBluetooth() {
+        const statusDiv = document.getElementById('status');
+        const btn = document.getElementById('connectBtn');
+
+        try {
+            // Stap 1: Open het native Bluetooth-menu van iOS/Android
+            // We vragen specifiek naar apparaten met een 'battery' service (standaard bij speakers)
+            statusDiv.innerText = "Zoeken...";
+            
+            const device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true, // Belangrijk voor iOS om meer opties te tonen
+                optionalServices: ['battery_service', 'generic_access'] 
+            });
+
+            statusDiv.innerText = `Verbind met: ${device.name || 'Onbekend'}...`;
+            
+            // Stap 2: GATT Connectie maken
+            const server = await device.gatt.connect();
+            
+            // Simuleer data-ontvangst om te laten zien dat het werkt
+            console.log("GATT Server verbonden:", server);
+            
+            statusDiv.innerText = `✅ Verbonden met ${device.name}`;
+            btn.disabled = true;
+            btn.innerText = "Verbonden";
+
+            // Hier zou je de audio-stream logica plaatsen (bijv. Web Audio API -> Bluetooth)
+            playSimulatedAudio(device.name);
+
+        } catch (error) {
+            statusDiv.innerText = `❌ Fout: ${error.message}`;
+            console.error(error);
+        }
+    }
+
+    function playSimulatedAudio(speakerName) {
+        // Simuleert dat audio nu wordt gestuurd naar de speaker
+        const context = new (window.AudioContext || window.webkitAudioContext)();
+        const oscillator = context.createOscillator();
+        const gainNode = context.createGain();
+
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, context.currentTime); // A4 toon
+        
+        gainNode.gain.setValueAtTime(0.1, context.currentTime);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(context.destination);
+        
+        oscillator.start();
+        
+        // Stop na 2 seconden
+        setTimeout(() => {
+            oscillator.stop();
+            alert("Audio-test gestuurd naar: " + speakerName);
+        }, 2000);
+    }
+</script>
+
+</body>
+</html>
